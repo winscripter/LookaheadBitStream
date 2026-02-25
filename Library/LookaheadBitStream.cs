@@ -4,23 +4,18 @@ namespace Library;
 
 public sealed class LookaheadBitStream
 {
-    struct State
-    {
-        public int CurrentByte, BitPosition;
-        public long BytePosition;
-    }
-
     private readonly Stream _backingStream;
 
     private int _currentByte;
     private int _bitPosition;
 
-    private readonly bool _streamCanSeek = false;
+    // For use in PeekBits()
+    private int _cache = 0;
+    private int _cacheBitsRemaining = 0;
 
     public LookaheadBitStream(Stream backingStream)
     {
         _backingStream = backingStream;
-        _streamCanSeek = backingStream.CanSeek;
 
         _currentByte = backingStream.ReadByte();
         _bitPosition = 0;
@@ -29,17 +24,14 @@ public sealed class LookaheadBitStream
             throw new EndOfStreamException();
     }
 
-    private State GetState() => new() { BitPosition = _bitPosition, CurrentByte = _currentByte, BytePosition = _backingStream.Position };
-
-    private void UseState(State state)
-    {
-        _bitPosition = state.BitPosition;
-        _currentByte = state.CurrentByte;
-        _backingStream.Position = state.BytePosition;
-    }
-
     public bool ReadBit()
     {
+        if (_cacheBitsRemaining > 0)
+        {
+            _cacheBitsRemaining--;
+            return (_cache & (1 << (_cacheBitsRemaining + 1))) != 0;
+        }
+
         if (_bitPosition == 8)
         {
             _bitPosition = 0;
@@ -65,59 +57,14 @@ public sealed class LookaheadBitStream
         return b;
     }
 
-    private readonly Queue<int> _buffer = new();
-
     public int PeekBits(int n)
     {
-        if (_streamCanSeek)
-        {
-            State state = this.GetState();
-            int r;
-            try
-            {
-                r = this.ReadBits(n);
-            }
-            catch
-            {
-                this.UseState(state);
-                throw;
-            }
-            this.UseState(state);
-            return r;
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(n, 0, nameof(n));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(n, 32, nameof(n));
 
-        while (_buffer.Count * 8 - _bitPosition < n)
-        {
-            int nextByte = _backingStream.ReadByte();
-            if (nextByte == -1)
-                throw new EndOfStreamException();
-
-            _buffer.Enqueue(nextByte);
-        }
-
-        int tempBitPos = _bitPosition;
-        int tempCurrentByte = _currentByte;
-        var tempBuffer = new Queue<int>(_buffer);
-
-        int b = 0;
-
-        for (int i = 0; i < n; i++)
-        {
-            b <<= 1;
-
-            if (tempBitPos == 8)
-            {
-                tempBitPos = 0;
-                tempCurrentByte = tempBuffer.Dequeue();
-            }
-
-            bool bit = (tempCurrentByte & (1 << tempBitPos)) != 0;
-            tempBitPos++;
-
-            if (bit)
-                b |= 1;
-        }
-
-        return b;
+        int result = ReadBits(n);
+        _cache = result;
+        _cacheBitsRemaining = n;
+        return result;
     }
 }
