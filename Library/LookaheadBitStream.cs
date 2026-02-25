@@ -47,10 +47,10 @@ public sealed class LookaheadBitStream
                 throw new EndOfStreamException();
         }
 
-        bool b = (_currentByte & (1 << _bitPosition)) != 0;
+        bool bit = (_currentByte >> 7 - _bitPosition & 1) == 1;
         _bitPosition++;
 
-        return b;
+        return bit;
     }
 
     public int ReadBits(int n)
@@ -61,8 +61,6 @@ public sealed class LookaheadBitStream
             b <<= 1;
             b |= ReadBit() ? 1 : 0;
         }
-
-        b = BinaryPrimitives.ReverseEndianness(b);
 
         return b;
     }
