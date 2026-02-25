@@ -1,4 +1,6 @@
-﻿namespace Library;
+﻿using System.Buffers.Binary;
+
+namespace Library;
 
 public sealed class LookaheadBitStream
 {
@@ -59,6 +61,8 @@ public sealed class LookaheadBitStream
             b <<= 1;
             b |= ReadBit() ? 1 : 0;
         }
+
+        b = BinaryPrimitives.ReverseEndianness(b);
 
         return b;
     }
