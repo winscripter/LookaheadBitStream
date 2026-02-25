@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="Library.Tests/Library.Tests.csproj" Id="2e4c3038-38e2-44c5-b156-47e014446362" />
+  <Project Path="Library/Library.csproj" />
+</Solution>
