@@ -1,6 +1,4 @@
-﻿using System.Buffers.Binary;
-
-namespace Library;
+﻿namespace Library;
 
 public sealed class LookaheadBitStream
 {
@@ -29,7 +27,7 @@ public sealed class LookaheadBitStream
         if (_cacheBitsRemaining > 0)
         {
             _cacheBitsRemaining--;
-            return (_cache & (1 << (_cacheBitsRemaining + 1))) != 0;
+            return (_cache & (1 << _cacheBitsRemaining)) != 0;
         }
 
         if (_bitPosition == 8)
